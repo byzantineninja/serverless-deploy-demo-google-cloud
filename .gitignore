@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build outputs
+.next/
+dist/
+*.tsbuildinfo
+
+# env files
+.env
+.env.local
+*.env
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# misc
+.DS_Store
+.superpowers/
+.turbo/
