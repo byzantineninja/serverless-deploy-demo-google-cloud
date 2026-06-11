@@ -17,6 +17,12 @@ importers:
 
   packages/eslint-config: {}
 
+  packages/types:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
 packages:
 
   '@turbo/darwin-64@2.9.16':
