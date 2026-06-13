@@ -1,5 +1,5 @@
 {
-  "name": "@demo/web",
+  "name": "@repo/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@demo/types": "workspace:*",
+    "@repo/types": "workspace:*",
     "better-auth": "^1.2.7",
     "mongodb": "^6.12.0",
     "google-auth-library": "^10.7.0",

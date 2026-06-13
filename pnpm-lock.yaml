@@ -72,7 +72,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@demo/types':
+      '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
       better-auth:

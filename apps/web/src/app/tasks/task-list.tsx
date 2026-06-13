@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { TaskForm } from './task-form';
-import type { Task, TaskStatus } from '@demo/types';
+import type { Task, TaskStatus } from '@repo/types';
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: '待辦',

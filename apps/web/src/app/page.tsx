@@ -10,7 +10,7 @@ export default async function HomePage() {
   return (
     <main>
       <h1>Task Manager</h1>
-      <p>Architecture demo — Next.js BFF + NestJS + Firestore</p>
+      <p>Architecture overview — Next.js BFF + NestJS + Firestore</p>
       <GoogleSignInButton />
     </main>
   );

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Task Manager',
-  description: 'Architecture demo — Task Manager',
+  description: 'Architecture overview — Task Manager',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
