@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  firebase-emulator:
+    image: andreysenov/firebase-tools
+    ports:
+      - "9099:9099"
+      - "4000:4000"
+    volumes:
+      - ./firebase.json:/home/node/firebase.json
+      - firebase_data:/home/node/emulator-data
+    working_dir: /home/node
+    command: firebase emulators:start --only auth --import=/home/node/emulator-data --export-on-exit=/home/node/emulator-data
+
+volumes:
+  mongo_data:
+  firebase_data:
