@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const body = await req.json();
   return proxyToApi(`/tasks/${id}`, {
     method: 'PATCH',
-    headers: internalHeaders(session.user.id),
+    headers: internalHeaders(session.userId),
     body: JSON.stringify(body),
   });
 }
@@ -23,6 +23,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   return proxyToApi(`/tasks/${id}`, {
     method: 'DELETE',
-    headers: internalHeaders(session.user.id),
+    headers: internalHeaders(session.userId),
   });
 }

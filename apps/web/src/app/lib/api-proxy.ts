@@ -1,5 +1,5 @@
-import { auth } from './auth';
-import { headers as nextHeaders } from 'next/headers';
+import { adminAuth } from './firebase-admin';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
 
@@ -8,8 +8,16 @@ const API_BASE_URL = process.env.API_BASE_URL!;
 const auth = new GoogleAuth();
 
 export async function requireSession() {
-  const session = await auth.api.getSession({ headers: await nextHeaders() });
-  return session ?? null;
+  const cookieStore = await cookies();
+  const token = cookieStore.get('firebase-token')?.value;
+  if (!token) return null;
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    return { userId: decoded.uid };
+  } catch {
+    return null;
+  }
 }
 
 export function internalHeaders(userId: string): HeadersInit {

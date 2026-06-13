@@ -1,13 +1,16 @@
 'use client';
 
-import { authClient } from '../lib/auth-client';
+import { signOut } from 'firebase/auth';
+import { getFirebaseAuth } from '../lib/firebase';
 import { useRouter } from 'next/navigation';
 
 export function SignOutButton() {
   const router = useRouter();
 
   async function handleSignOut() {
-    await authClient.signOut();
+    const auth = await getFirebaseAuth();
+    await signOut(auth);
+    document.cookie = 'firebase-token=; path=/; max-age=0';
     router.push('/');
   }
 

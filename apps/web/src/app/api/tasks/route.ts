@@ -6,7 +6,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   return proxyToApi('/tasks', {
-    headers: internalHeaders(session.user.id),
+    headers: internalHeaders(session.userId),
   });
 }
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   return proxyToApi('/tasks', {
     method: 'POST',
-    headers: internalHeaders(session.user.id),
+    headers: internalHeaders(session.userId),
     body: JSON.stringify(body),
   });
 }
