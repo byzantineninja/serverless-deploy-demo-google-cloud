@@ -1,0 +1,71 @@
+name: "Terraform Deploy"
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform.yml"
+      - ".github/workflows/_terraform-job.yml"
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: "Terraform working directory"
+        required: true
+        type: choice
+        options:
+          - infra/02-foundation
+          - infra/03-services
+      action:
+        description: "要執行的動作"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  bootstrap:
+    name: "bootstrap"
+    uses: ./.github/workflows/_terraform-job.yml
+    with:
+      working_directory: infra/01-bootstrap
+      resource_exists_check_command: exit 1 # bootstrap 不執行 Plan 和 Apply
+      google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
+      google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+    secrets: inherit
+
+  foundation:
+    name: "foundation"
+    needs: [bootstrap]
+    if: >-
+      always() && (
+        (github.event_name == 'pull_request' && needs.bootstrap.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.working_directory == 'infra/02-foundation')
+      )
+    uses: ./.github/workflows/_terraform-job.yml
+    with:
+      working_directory: infra/02-foundation
+      tf_vars: '{"tf_state_bucket":"${{ vars.TF_STATE_BUCKET }}"}'
+      google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
+      google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+  services:
+    name: "services"
+    needs: [foundation]
+    if: >-
+      always() && (
+        (github.event_name == 'pull_request' && needs.foundation.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.working_directory == 'infra/03-services')
+      )
+    uses: ./.github/workflows/_terraform-job.yml
+    with:
+      working_directory: infra/03-services
+      tf_vars: '{"tf_state_bucket":"${{ vars.TF_STATE_BUCKET }}"}'
+      google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
+      google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}

@@ -128,7 +128,41 @@ terraform init -backend-config="bucket=<your-bucket-name>"
 terraform apply
 ```
 
-Apply 完成後，輸出值（`wif_provider`、`wif_service_account`、`tf_state_bucket`）需設定為 GitHub repository secrets，供後續 GitHub Actions workflow 使用。
+Apply 完成後，`terraform output` 會顯示需要填入 GitHub 的值：
+
+```bash
+terraform output
+```
+
+### 步驟六：設定 GitHub Repository Secrets
+
+前往 GitHub repo → **Settings → Secrets and variables → Actions**，新增以下兩個 **Repository secrets** 與一個 **Repository variable**：
+
+| 類型     | 名稱                  | 對應的 terraform output | 說明                                       |
+| -------- | --------------------- | ----------------------- | ------------------------------------------ |
+| Variable | `WIF_PROVIDER`        | `wif_provider`          | Workload Identity Federation provider 名稱 |
+| Variable | `WIF_SERVICE_ACCOUNT` | `wif_service_account`   | GitHub Actions 使用的 GCP service account  |
+| Variable | `TF_STATE_BUCKET`     | `tf_state_bucket`       | Terraform state 所在的 GCS bucket 名稱     |
+
+也可以直接用 `gh` CLI 設定：
+
+```bash
+GH_REPO=$(terraform output -raw github_repository)
+
+gh variable set WIF_PROVIDER \
+  --repo "$GH_REPO" \
+  --body "$(terraform output -raw wif_provider)"
+
+gh variable set WIF_SERVICE_ACCOUNT \
+  --repo "$GH_REPO" \
+  --body "$(terraform output -raw wif_service_account)"
+
+gh variable set TF_STATE_BUCKET \
+  --repo "$GH_REPO" \
+  --body "$(terraform output -raw tf_state_bucket)"
+```
+
+設定完成後，GitHub Actions 的 Terraform workflow 即可正常運作。
 
 ## 本機開發環境設定
 

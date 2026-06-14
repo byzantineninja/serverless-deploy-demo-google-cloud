@@ -1,0 +1,104 @@
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: "Terraform working directory"
+        required: true
+        type: string
+      resource_exists_check_command:
+        description: "Optional shell command to verify required resources exist"
+        required: false
+        type: string
+      google_cloud_wif_provider:
+        required: true
+        type: string
+      google_cloud_wif_service_account:
+        required: true
+        type: string
+      tf_vars:
+        description: "JSON object containing all environment variables to set"
+        required: false
+        type: string
+jobs:
+  terraform:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.working_directory == inputs.working_directory)
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ inputs.google_cloud_wif_provider }}
+          service_account: ${{ inputs.google_cloud_wif_service_account }}
+
+      - name: Set environment variables from JSON
+        if: ${{ inputs.tf_vars }}
+        run: |
+          echo '${{ inputs.tf_vars }}' | jq -r 'to_entries[] | "TF_VAR_\(.key)=\(.value)"' >> "$GITHUB_ENV"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Check prerequisite resource existence
+        id: resource_check
+        run: |
+          CMD="${{ inputs.resource_exists_check_command }}"
+
+          if [[ -z "$CMD" ]]; then
+            echo "No resource_exists_check_command provided. Continue Terraform execution."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Running resource check command: $CMD"
+          set +e
+          bash -c "$CMD"
+          STATUS=$?
+          set -e
+
+          if [[ $STATUS -eq 0 ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Resource check passed: resource exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Resource check failed: resource does not exist. Skip Terraform plan/apply."
+          fi
+
+      - name: Terraform Plan
+        if: steps.resource_check.outputs.exists == 'true'
+        run: terraform plan -input=false
+
+      - name: Terraform Apply
+        if: steps.resource_check.outputs.exists == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve -input=false
+
+      - name: Write outputs to step summary
+        if: steps.resource_check.outputs.exists == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+        run: |
+          echo "## Terraform Outputs \`${{ inputs.working_directory }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          terraform output 2>/dev/null || true
+          terraform output 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
