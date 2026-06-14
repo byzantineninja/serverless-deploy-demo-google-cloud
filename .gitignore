@@ -11,13 +11,8 @@ dist/
 .env.local
 *.env
 
-# terraform
-.terraform/
-*.tfstate
-*.tfstate.backup
-.terraform.lock.hcl
-
 # misc
 .DS_Store
 .superpowers/
 .turbo/
+*.tsbuildinfo

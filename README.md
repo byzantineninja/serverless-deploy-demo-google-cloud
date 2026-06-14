@@ -79,6 +79,57 @@
 
 這些資源讓專案可以作為 GitHub Actions 部署到 Google Cloud 的實作範例，而不是只有單純的本機開發樣板。
 
+## 雲端基礎設施部署前置作業
+
+在執行任何 Terraform 之前，需要先手動完成以下步驟。
+
+### 步驟一：建立 Google Cloud 專案
+
+前往 [Google Cloud Console](https://console.cloud.google.com/) 建立一個新專案，並記下 **Project ID**（不是 Project Name）。
+
+### 步驟二：建立 Terraform State Bucket
+
+所有 Terraform state 檔案都儲存在 GCS bucket 中，需要在執行 `terraform init` 之前手動建立：
+
+```bash
+gcloud storage buckets create gs://<your-bucket-name> \
+  --project=<your-project-id> \
+  --location=asia-east1 \
+  --uniform-bucket-level-access
+```
+
+> Bucket 名稱必須全域唯一，建議使用 `<project-id>-tf-state` 這類格式。
+
+### 步驟三：設定 01-bootstrap tfvars
+
+在 `infra/01-bootstrap/` 目錄下建立 `terraform.tfvars`，並填入以下內容：
+
+```tfvars
+project_id        = "<your-project-id>"
+region            = "asia-east1"
+github_repository = "<github-owner>/<repo-name>"
+tf_state_bucket   = "<your-bucket-name>"
+```
+
+| 變數                | 說明                           |
+| ------------------- | ------------------------------ |
+| `project_id`        | GCP 專案 ID                    |
+| `region`            | 資源部署區域                   |
+| `github_repository` | GitHub repo 路徑（owner/repo） |
+| `tf_state_bucket`   | 步驟三建立的 GCS bucket 名稱   |
+
+### 步驟四：初始化並執行 Bootstrap
+
+```bash
+cd infra/01-bootstrap
+
+terraform init -backend-config="bucket=<your-bucket-name>"
+
+terraform apply
+```
+
+Apply 完成後，輸出值（`wif_provider`、`wif_service_account`、`tf_state_bucket`）需設定為 GitHub repository secrets，供後續 GitHub Actions workflow 使用。
+
 ## 本機開發環境設定
 
 ### 前置需求
