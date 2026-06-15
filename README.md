@@ -143,6 +143,7 @@ terraform output
 | Variable | `WIF_PROVIDER`        | `wif_provider`          | Workload Identity Federation provider 名稱 |
 | Variable | `WIF_SERVICE_ACCOUNT` | `wif_service_account`   | GitHub Actions 使用的 GCP service account  |
 | Variable | `TF_STATE_BUCKET`     | `tf_state_bucket`       | Terraform state 所在的 GCS bucket 名稱     |
+| Variable | `DOMAIN_NAME`         | —                       | 前端服務的自訂網域，例如 `example.com`     |
 
 也可以直接用 `gh` CLI 設定：
 
@@ -160,6 +161,10 @@ gh variable set WIF_SERVICE_ACCOUNT \
 gh variable set TF_STATE_BUCKET \
   --repo "$GH_REPO" \
   --body "$(terraform output -raw tf_state_bucket)"
+
+gh variable set DOMAIN_NAME \
+  --repo "$GH_REPO" \
+  --body "example.com" # 替換成你的自訂網域
 ```
 
 設定完成後，GitHub Actions 的 Terraform workflow 即可正常運作。

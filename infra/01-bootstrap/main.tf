@@ -21,11 +21,13 @@ resource "google_project_iam_member" "github_actions_project_roles" {
     "roles/iam.serviceAccountAdmin",
     "roles/iam.serviceAccountUser",
     "roles/serviceusage.serviceUsageAdmin",
+    "roles/serviceusage.apiKeysAdmin",
     "roles/resourcemanager.projectIamAdmin",
     "roles/artifactregistry.admin",
-    "roles/datastore.owner",
-    "roles/identityplatform.admin",
     "roles/run.admin",
+    "roles/datastore.owner",
+    "roles/firebase.admin",
+    "roles/identityplatform.admin",
   ])
 
   project = var.project_id

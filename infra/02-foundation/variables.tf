@@ -8,3 +8,8 @@ variable "bootstrap_state_prefix" {
   type        = string
   default     = "terraform/bootstrap"
 }
+
+variable "domain_name" {
+  description = "用於設定 Cloud Run 前端服務的自訂網域名稱。"
+  type        = string
+}

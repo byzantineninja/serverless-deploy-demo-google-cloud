@@ -51,7 +51,7 @@ jobs:
     uses: ./.github/workflows/_terraform-job.yml
     with:
       working_directory: infra/02-foundation
-      tf_vars: '{"tf_state_bucket":"${{ vars.TF_STATE_BUCKET }}"}'
+      tf_vars: '{"tf_state_bucket":"${{ vars.TF_STATE_BUCKET }}","domain_name":"${{ vars.DOMAIN_NAME }}"}'
       google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
       google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
 
