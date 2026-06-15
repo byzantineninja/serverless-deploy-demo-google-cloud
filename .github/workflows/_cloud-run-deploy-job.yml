@@ -1,0 +1,95 @@
+on:
+  workflow_call:
+    inputs:
+      app_directory:
+        description: "App directory containing the Dockerfile (e.g. apps/api)"
+        required: true
+        type: string
+      google_cloud_wif_provider:
+        required: true
+        type: string
+      google_cloud_wif_service_account:
+        required: true
+        type: string
+      project_id:
+        description: "GCP project ID"
+        required: true
+        type: string
+      region:
+        description: "GCP region"
+        required: true
+        type: string
+      artifact_registry_url:
+        description: "Artifact Registry base URL without image name (e.g. asia-east1-docker.pkg.dev/my-project/docker-repo)"
+        required: true
+        type: string
+      image_name:
+        description: "Docker image name stored in Artifact Registry (e.g. api)"
+        required: true
+        type: string
+      cloud_run_name:
+        description: "Cloud Run service name"
+        required: true
+        type: string
+      service_account_email:
+        description: "Cloud Run runtime service account email"
+        required: true
+        type: string
+      env_vars:
+        description: 'JSON object of environment variables to set on the Cloud Run service (e.g. {"KEY": "VALUE"})'
+        required: false
+        type: string
+        default: "{}"
+
+jobs:
+  cloud-run-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.region }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.app_directory }}/Dockerfile
+          push: true
+          tags: ${{ inputs.artifact_registry_url }}/${{ inputs.image_name }}:${{ github.sha }}
+
+      - name: Parse env_vars JSON to pipe-delimited gcloud format
+        id: parse-env-vars
+        run: |
+          RESULT=$(echo '${{ inputs.env_vars }}' | jq -r '[to_entries[] | select(.value != "")] | map("\(.key)=\(.value)") | join("|")')
+          if [ -n "$RESULT" ]; then
+            echo "flag=--set-env-vars=^|^${RESULT}" >> "$GITHUB_OUTPUT"
+          else
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ inputs.cloud_run_name }}
+          image: ${{ inputs.artifact_registry_url }}/${{ inputs.image_name }}:${{ github.sha }}
+          region: ${{ inputs.region }}
+          project_id: ${{ inputs.project_id }}
+          flags: --service-account=${{ inputs.service_account_email }} ${{ steps.parse-env-vars.outputs.flag }}

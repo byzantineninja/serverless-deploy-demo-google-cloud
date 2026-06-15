@@ -169,6 +169,15 @@ gh variable set DOMAIN_NAME \
 
 設定完成後，GitHub Actions 的 Terraform workflow 即可正常運作。
 
+## 執行部署
+
+完成前置作業後，依序執行以下四個步驟完成完整部署：
+
+1. **Terraform Deploy → `infra/02-foundation`**：建立 Cloud Run、Artifact Registry 等基礎資源
+2. **Deploy → `backend`**：建置並部署 NestJS API 到 Cloud Run
+3. **Deploy → `frontend`**：建置並部署 Next.js Web 到 Cloud Run
+4. **Terraform Deploy → `infra/03-services`**：設定 Cloud Run 對外路由
+
 ## 本機開發環境設定
 
 ### 前置需求

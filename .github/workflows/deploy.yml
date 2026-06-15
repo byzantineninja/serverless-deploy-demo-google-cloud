@@ -1,0 +1,114 @@
+name: "Deploy"
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to deploy"
+        required: true
+        type: choice
+        options:
+          - backend
+          - frontend
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  load-config:
+    name: "Load Terraform outputs"
+    runs-on: ubuntu-latest
+    outputs:
+      project_id: ${{ steps.tf.outputs.project_id}}
+      region: ${{ steps.tf.outputs.region}}
+      artifact_registry_url: ${{ steps.tf.outputs.artifact_registry_url}}
+      backend_service_name: ${{ steps.tf.outputs.backend_service_name}}
+      frontend_service_name: ${{ steps.tf.outputs.frontend_service_name}}
+      backend_service_account_email: ${{ steps.tf.outputs.backend_service_account_email}}
+      frontend_service_account_email: ${{ steps.tf.outputs.frontend_service_account_email}}
+      backend_mongodb_uri: ${{ steps.tf.outputs.backend_mongodb_uri}}
+      firebase_api_key: ${{ steps.tf.outputs.firebase_api_key}}
+      firebase_auth_domain: ${{ steps.tf.outputs.firebase_auth_domain}}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Load Terraform outputs from GCS
+        id: tf
+        run: |
+          TF_BOOTSTRAP=$(gcloud storage cat "gs://${{ vars.TF_STATE_BUCKET }}/terraform/bootstrap/default.tfstate")
+          echo "project_id=$(echo "$TF_BOOTSTRAP" | jq -r '.outputs.project_id.value')" >> "$GITHUB_OUTPUT"
+          echo "region=$(echo "$TF_BOOTSTRAP" | jq -r '.outputs.region.value')" >> "$GITHUB_OUTPUT"
+
+          TF_FOUNDATION=$(gcloud storage cat "gs://${{ vars.TF_STATE_BUCKET }}/terraform/foundation/default.tfstate")
+          echo "artifact_registry_url=$(echo "$TF_FOUNDATION" | jq -r '.outputs.artifact_registry_url.value')" >> "$GITHUB_OUTPUT"
+          echo "backend_service_name=$(echo "$TF_FOUNDATION" | jq -r '.outputs.backend_service_name.value')" >> "$GITHUB_OUTPUT"
+          echo "frontend_service_name=$(echo "$TF_FOUNDATION" | jq -r '.outputs.frontend_service_name.value')" >> "$GITHUB_OUTPUT"
+          echo "backend_service_account_email=$(echo "$TF_FOUNDATION" | jq -r '.outputs.backend_service_account_email.value')" >> "$GITHUB_OUTPUT"
+          echo "frontend_service_account_email=$(echo "$TF_FOUNDATION" | jq -r '.outputs.frontend_service_account_email.value')" >> "$GITHUB_OUTPUT"
+          echo "backend_mongodb_uri=$(echo "$TF_FOUNDATION" | jq -r '.outputs.backend_mongodb_uri.value')" >> "$GITHUB_OUTPUT"
+          echo "firebase_api_key=$(echo "$TF_FOUNDATION" | jq -r '.outputs.firebase_api_key.value')" >> "$GITHUB_OUTPUT"
+          echo "firebase_auth_domain=$(echo "$TF_FOUNDATION" | jq -r '.outputs.firebase_auth_domain.value')" >> "$GITHUB_OUTPUT"
+
+  deploy-backend:
+    name: "backend"
+    needs: load-config
+    if: github.event.inputs.service == 'backend'
+    uses: ./.github/workflows/_cloud-run-deploy-job.yml
+    with:
+      app_directory: apps/api
+      google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
+      google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+      project_id: ${{ needs.load-config.outputs.project_id }}
+      region: ${{ needs.load-config.outputs.region }}
+      artifact_registry_url: ${{ needs.load-config.outputs.artifact_registry_url }}
+      image_name: ${{ needs.load-config.outputs.backend_service_name }}
+      cloud_run_name: ${{ needs.load-config.outputs.backend_service_name }}
+      service_account_email: ${{ needs.load-config.outputs.backend_service_account_email}}
+      env_vars: '{"MONGODB_URI":"${{needs.load-config.outputs.backend_mongodb_uri}}"}'
+
+  fetch-backend-url:
+    name: "Fetch backend Cloud Run URL"
+    needs: load-config
+    if: github.event.inputs.service == 'frontend'
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.get-url.outputs.url }}
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - name: Get backend Cloud Run URL
+        id: get-url
+        run: |
+          URL=$(gcloud run services describe "${{ needs.load-config.outputs.backend_service_name }}" \
+            --region "${{ needs.load-config.outputs.region }}" \
+            --project "${{ needs.load-config.outputs.project_id }}" \
+            --format "value(status.url)" 2>/dev/null || true)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+  deploy-frontend:
+    name: "frontend"
+    needs: [load-config, fetch-backend-url]
+    if: github.event.inputs.service == 'frontend'
+    uses: ./.github/workflows/_cloud-run-deploy-job.yml
+    with:
+      app_directory: apps/web
+      google_cloud_wif_provider: ${{ vars.WIF_PROVIDER }}
+      google_cloud_wif_service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+      project_id: ${{ needs.load-config.outputs.project_id }}
+      region: ${{ needs.load-config.outputs.region }}
+      artifact_registry_url: ${{ needs.load-config.outputs.artifact_registry_url }}
+      image_name: ${{ needs.load-config.outputs.frontend_service_name }}
+      cloud_run_name: ${{ needs.load-config.outputs.frontend_service_name }}
+      service_account_email: ${{ needs.load-config.outputs.frontend_service_account_email}}
+      env_vars: '{"FIREBASE_API_KEY":"${{needs.load-config.outputs.firebase_api_key}}","FIREBASE_AUTH_DOMAIN":"${{needs.load-config.outputs.firebase_auth_domain}}","API_BASE_URL":"${{ needs.fetch-backend-url.outputs.url }}"}'
