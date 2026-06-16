@@ -12,6 +12,7 @@
     "@demo/types": "workspace:*",
     "better-auth": "^1.2.7",
     "mongodb": "^6.12.0",
+    "google-auth-library": "^10.7.0",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
