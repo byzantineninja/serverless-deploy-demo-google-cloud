@@ -169,6 +169,30 @@ gh variable set DOMAIN_NAME \
 
 設定完成後，GitHub Actions 的 Terraform workflow 即可正常運作。
 
+### 步驟七：在 Google Search Console 驗證網域擁有權
+
+Cloud Run domain mapping 要求執行 Terraform 的服務帳號已在 **Google Search Console** 取得網域的擁有權，否則 `03-services` 的 `terraform apply` 會失敗。
+
+#### 7.1 驗證網域
+
+1. 前往 [Google Search Console](https://search.google.com/search-console) → **新增資源** → 選擇「網域」類型
+2. 輸入你的網域（例如 `example.com`）
+3. 依指示在 DNS 供應商新增一筆 `TXT` 驗證紀錄
+4. 等待驗證通過（通常數分鐘）
+
+#### 7.2 將 GitHub Actions 服務帳號加為網域擁有者
+
+驗證完成後，需將 GitHub Actions 使用的 GCP service account 加入該網域的擁有者清單：
+
+1. 在 Search Console 左側選單選擇已驗證的網域資源
+2. 點擊 **設定** → **使用者與權限**
+3. 點擊 **新增使用者**，填入服務帳號 email
+4. 權限選擇 **擁有者**，儲存
+
+服務帳號 email 可在執行 `infra/02-foundation` apply 後，前往 GitHub Actions → 該次執行 → **Summary** 分頁查看（欄位名稱：`github_actions_service_account_email`）。
+
+> 只有擁有者身份的帳號才能在 GCP 中建立 domain mapping，Viewer 或 Editor 身份不夠。
+
 ## 執行部署
 
 完成前置作業後，依序執行以下四個步驟完成完整部署：
@@ -176,7 +200,11 @@ gh variable set DOMAIN_NAME \
 1. **Terraform Deploy → `infra/02-foundation`**：建立 Cloud Run、Artifact Registry 等基礎資源
 2. **Deploy → `backend`**：建置並部署 NestJS API 到 Cloud Run
 3. **Deploy → `frontend`**：建置並部署 Next.js Web 到 Cloud Run
-4. **Terraform Deploy → `infra/03-services`**：設定 Cloud Run 對外路由
+4. **Terraform Deploy → `infra/03-services`**：設定 IAM 存取規則與自訂網域對應
+
+### 執行後：設定 DNS 紀錄
+
+`infra/03-services` apply 完成後，前往 GitHub Actions → 該次執行 → **Summary** 分頁，可在 `manual_dns_records` 欄位看到需要設定的 DNS 紀錄（類型與 IP）。將這些紀錄填入你的 DNS 供應商後，等待 DNS 生效（通常數分鐘至數小時），Cloud Run 即會自動完成 TLS 憑證申請。
 
 ## 本機開發環境設定
 

@@ -17,6 +17,10 @@ data "terraform_remote_state" "foundation" {
 }
 
 locals {
-  project_id = data.terraform_remote_state.bootstrap.outputs.project_id
-  region     = data.terraform_remote_state.bootstrap.outputs.region
+  project_id                     = data.terraform_remote_state.bootstrap.outputs.project_id
+  region                         = data.terraform_remote_state.bootstrap.outputs.region
+  backend_service_name           = data.terraform_remote_state.foundation.outputs.backend_service_name
+  frontend_service_name          = data.terraform_remote_state.foundation.outputs.frontend_service_name
+  frontend_service_account_email = data.terraform_remote_state.foundation.outputs.frontend_service_account_email
+  domain_name                    = data.terraform_remote_state.foundation.outputs.domain_name
 }
