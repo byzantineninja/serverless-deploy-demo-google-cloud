@@ -1,17 +1,14 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'done';
-
-export interface Task {
+export interface Merit {
   _id: string;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  ownerId: string;
+  uid: string;
+  displayName: string;
+  count: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type CreateTaskDto = Pick<Task, 'title' | 'description'>;
-export type UpdateTaskDto = Partial<Pick<Task, 'title' | 'description' | 'status'>>;
+/** 排行榜上的一筆功德紀錄（不含內部欄位）。 */
+export type MeritEntry = Pick<Merit, 'uid' | 'displayName' | 'count'>;
 
 export interface User {
   _id: string;

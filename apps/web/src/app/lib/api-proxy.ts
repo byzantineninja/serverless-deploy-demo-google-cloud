@@ -40,7 +40,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 export async function proxyToApi(
   path: string,
-  options: RequestInit,
+  options: RequestInit = {},
 ): Promise<NextResponse> {
   const authHeaders = await getAuthHeaders();
 

@@ -70,7 +70,7 @@ export function LoginForm() {
       const token = await credential.user.getIdToken();
       document.cookie = `firebase-token=${token}; path=/; SameSite=Strict; max-age=3600`;
       const backendUser = await syncProfile(credential.user.displayName);
-      router.push(backendUser?.displayName ? "/tasks" : "/profile/setup");
+      router.push(backendUser?.displayName ? "/merit" : "/profile/setup");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "認證失敗，請再試一次");
     } finally {
@@ -113,7 +113,7 @@ export function LoginForm() {
       const token = await credential.user.getIdToken();
       document.cookie = `firebase-token=${token}; path=/; SameSite=Strict; max-age=3600`;
       const backendUser = await syncProfile(credential.user.displayName);
-      router.push(backendUser?.displayName ? "/tasks" : "/profile/setup");
+      router.push(backendUser?.displayName ? "/merit" : "/profile/setup");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "認證失敗，請再試一次");
     } finally {

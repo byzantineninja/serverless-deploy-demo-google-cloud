@@ -34,7 +34,7 @@ export function ProfileSetupForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName }),
       });
-      router.push("/tasks");
+      router.push("/merit");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "更新失敗，請再試一次");
     } finally {
@@ -52,7 +52,7 @@ export function ProfileSetupForm() {
         type="text"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
-        placeholder="顯示名稱"
+        placeholder="法號"
         required
         className="auth-input"
       />

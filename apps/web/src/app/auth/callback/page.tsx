@@ -30,7 +30,7 @@ export default function AuthCallbackPage() {
       });
       const backendUser = res.ok ? await res.json() : null;
       window.localStorage.removeItem(EMAIL_STORAGE_KEY);
-      router.replace(backendUser?.displayName ? "/tasks" : "/profile/setup");
+      router.replace(backendUser?.displayName ? "/merit" : "/profile/setup");
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : "連結無效或已過期，請重新索取");
       setStatus("error");

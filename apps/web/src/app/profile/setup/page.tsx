@@ -1,9 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { adminAuth } from "@/app/lib/firebase-admin";
+import { proxyToApi } from "@/app/lib/api-proxy";
 import { ProfileSetupForm } from "./profile-setup-form";
-
-const API_BASE_URL = process.env.API_BASE_URL!;
 
 export default async function ProfileSetupPage() {
   const cookieStore = await cookies();
@@ -19,12 +18,12 @@ export default async function ProfileSetupPage() {
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/users/me`, {
+    const res = await proxyToApi("/users/me", {
       headers: { "x-user-id": uid! },
     });
     if (res.ok) {
       const user = await res.json();
-      if (user.displayName) redirect("/tasks");
+      if (user.displayName) redirect("/merit");
     }
   } catch {
     // If backend is unreachable, show the setup form anyway
